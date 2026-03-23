@@ -1,0 +1,55 @@
+Acortar en PS (opcional- windows)
+function prompt { "PS $(Split-Path -Leaf (Get-Location))> " }
+
+2️⃣ Flujo de despliegue
+terraform init   # Inicializa el proyecto y descarga plugins AWS
+
+
+terraform workspace select dev || terraform workspace new dev
+terraform validate
+terraform plan   # Muestra qué recursos se crearán
+terraform apply  # Crea la infraestructura en AWS
+
+
+3️⃣ Verificar conexión con AWS
+aws sts get-caller-identity
+
+Flujo de limpieza
+terraform destroy # Elimina la infraestructura creada
+
+
+También puedes ejecutar:
+
+para refrescar y actualizar valores:
+terraform refresh
+
+para ver todos los outputs definidos en tu proyecto:
+terraform output
+
+para ver todos los outputs definidos en tu proyecto en formato json:
+terraform output -json
+
+
+Valida residuos en AWS (costos)
+Elastic IP (EIP)
+aws ec2 describe-addresses --region us-east-1 --output table
+NAT Gateway
+aws ec2 describe-nat-gateways --region us-east-1 --filter Name=state,Values=available,pending,deleting --output table
+Load Balancer (ALB)
+aws elbv2 describe-load-balancers --region us-east-1 --output table
+
+
+
+===========================================
+pendiente probar
+
+Acceso SSH
+Conexión directa al servidor web (desde tu PC):
+ssh -i "C:/ruta/a/testKey.pem" ec2-user@<IP_PUBLICA_WEB>
+Acceder al servidor privado (jump host) — método recomendado ProxyCommand:
+ssh -i "C:/ruta/a/testKey.pem" -o "ProxyCommand ssh -W %h:%p -i \"C:/ruta/a/testKey.pem\" ec2-user@<IP_PUBLICA_WEB>" ec2-user@<IP_PRIVADA_APP>
+Alternativa con -J (si tu cliente lo soporta):
+ssh -i "C:/ruta/a/testKey.pem" -J ec2-user@<IP_PUBLICA_WEB> ec2-user@<IP_PRIVADA_APP>
+Copiar archivos al servidor privado usando scp + ProxyCommand:
+scp -i "C:/ruta/a/testKey.pem" -o "ProxyCommand ssh -W %h:%p -i \"C:/ruta/a/testKey.pem\" ec2-user@<IP_PUBLICA_WEB>" C:/local/app.jar ec2-user@<IP_PRIVADA_APP>:/home/ec2-user/
+Problemas comunes y soluciones

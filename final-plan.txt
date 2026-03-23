@@ -1,0 +1,17 @@
+﻿terraform : 
+En línea: 1 Carácter: 182
++ ... Kubernetes"; terraform plan -detailed-exitcode -no-color 2>&1 | Out-F ...
++                  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+Error: Error acquiring the state lock
+
+Error message: Failed to read state file: The state file could not be read:
+read terraform.tfstate.d\dev\terraform.tfstate: The process cannot access the
+file because another process has locked a portion of the file.
+
+Terraform acquires a state lock to protect the state from being written
+by multiple users at the same time. Please resolve the issue above and try
+again. For most commands, you can disable locking with the "-lock=false"
+flag, but this is not recommended.
