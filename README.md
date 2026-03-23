@@ -30,11 +30,11 @@ Implementar infraestructura en AWS mediante Terraform para un clúster K3s bási
 
 ## Parámetros principales (entorno dev)
 - `vpc_cidr = 172.16.20.0/22`
-- `pub_subnets = [172.16.20.0/25, 172.16.20.128/25]  ------ Hosts`
+- `pub_subnets = [172.16.20.0/25, 172.16.20.128/25]`  — Hosts
 - `priv_subnets = [`
-  - `"172.16.21.0/25", "172.16.21.128/25"` — Back
-  - `"172.16.22.0/26", "172.16.22.64/26"` — DB
-  - `"172.16.22.128/26", "172.16.22.192/26"` — Users
+  - `"172.16.21.0/25", "172.16.21.128/25"`      ———— Back
+  - `"172.16.22.0/26", "172.16.22.64/26"`       ————— DB
+  - `"172.16.22.128/26", "172.16.22.192/26"`    ————— Users
   - `]`
 - `master_type = t3.medium`
 - `worker_type = t3.large`
