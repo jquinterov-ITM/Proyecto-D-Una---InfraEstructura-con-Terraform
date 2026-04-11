@@ -1,0 +1,125 @@
+Acortar en PS (opcional- windows)
+function prompt { "PS $(Split-Path -Leaf (Get-Location))> " }
+
+2️⃣ Flujo de despliegue
+terraform init   # Inicializa el proyecto y descarga plugins AWS
+
+terraform workspace select dev || terraform workspace new dev
+
+terraform validate
+
+terraform plan   # Muestra qué recursos se crearán
+
+
+terraform apply  # Crea la infraestructura en AWS
+  > yes
+
+
+# Opciones cuando la cuenta NO permite crear roles IAM:
+# Usar un instance profile existente (no requiere permisos IAM adicionales):
+terraform apply -var="existing_instance_profile_name=MyExistingProfile" -var-file "terraform.tfvars"
+
+# Permitir que Terraform cree el rol/profile (requiere permisos IAM: iam:CreateRole, iam:AttachRolePolicy):
+terraform apply -var="create_ec2_iam_resources=true" -var-file "terraform.tfvars"
+
+3️⃣ Verificar conexión con AWS
+aws sts get-caller-identity
+
+terraform output worker_names
+terraform output worker_private_ips
+
+
+
+
+- Ver los worker, por estado e ip
+aws ec2 describe-instances --filters "Name=tag:Name,Values=worker-dev-*" --query 'Reservations[].Instances[].{Name:Tags[?Key==`Name`]|[0].Value,PrivateIp:PrivateIpAddress,State:State.Name}' --output table
+
+- todas las instancias
+terraform state list | Select-String "module.compute"
+
+
+Flujo de limpieza
+terraform destroy # Elimina la infraestructura creada
+
+
+También puedes ejecutar:
+
+para refrescar y actualizar valores:
+terraform refresh
+
+para ver todos los outputs definidos en tu proyecto:
+terraform output
+
+para ver todos los outputs definidos en tu proyecto en formato json:
+terraform output -json
+
+
+Valida residuos en AWS (costos)
+Elastic IP (EIP)
+aws ec2 describe-addresses --region us-east-1 --output table
+NAT Gateway
+aws ec2 describe-nat-gateways --region us-east-1 --filter Name=state,Values=available,pending,deleting --output table
+Load Balancer (ALB)
+aws elbv2 describe-load-balancers --region us-east-1 --output table
+
+
+
+===========================================
+pendiente probar
+
+Acceso SSH
+Conexión directa al servidor web (desde tu PC):
+ssh -i "C:/ruta/a/testKey.pem" ec2-user@<IP_PUBLICA_WEB>
+Acceder al servidor privado (jump host) — método recomendado ProxyCommand:
+ssh -i "C:/ruta/a/testKey.pem" -o "ProxyCommand ssh -W %h:%p -i \"C:/ruta/a/testKey.pem\" ec2-user@<IP_PUBLICA_WEB>" ec2-user@<IP_PRIVADA_APP>
+Alternativa con -J (si tu cliente lo soporta):
+ssh -i "C:/ruta/a/testKey.pem" -J ec2-user@<IP_PUBLICA_WEB> ec2-user@<IP_PRIVADA_APP>
+Copiar archivos al servidor privado usando scp + ProxyCommand:
+scp -i "C:/ruta/a/testKey.pem" -o "ProxyCommand ssh -W %h:%p -i \"C:/ruta/a/testKey.pem\" ec2-user@<IP_PUBLICA_WEB>" C:/local/app.jar ec2-user@<IP_PRIVADA_APP>:/home/ec2-user/
+Problemas comunes y soluciones
+
+
+
+=========================================
+powerShell
+
+# Crear carpeta de reportes
+New-Item -ItemType Directory -Force -Path .\reportes | Out-Null
+
+# 1) Lista de recursos en state
+terraform state list | Out-File .\reportes\01-state-list.txt -Encoding utf8
+
+# 2) Outputs (normal + json)
+terraform output | Out-File .\reportes\02-outputs.txt -Encoding utf8
+terraform output -json | Out-File .\reportes\03-outputs.json -Encoding utf8
+
+# 3) Estado completo en JSON
+terraform show -json | Out-File .\reportes\04-state.json -Encoding utf8
+
+# 4) Grafo de dependencias (DOT)
+terraform graph | Out-File .\reportes\05-graph.dot -Encoding utf8
+
+# 5) Recursos clave (si existen) con detalle legible
+$recursos = @(
+  "module.network.aws_vpc.main",
+  "module.network.aws_subnet.public[0]",
+  "module.network.aws_subnet.public[1]",
+  "module.network.aws_subnet.app[0]",
+  "module.network.aws_subnet.data[0]",
+  "module.load_balancer.aws_lb.main",
+  "module.data.aws_db_instance.main[0]"
+)
+
+foreach ($r in $recursos) {
+  try {
+    terraform state show $r | Out-File ".\reportes\recurso-$($r -replace '[^\w\.-]','_').txt" -Encoding utf8
+  } catch {
+    "No encontrado en state: $r" | Out-File ".\reportes\recurso-$($r -replace '[^\w\.-]','_').txt" -Encoding utf8
+  }
+}
+
+Write-Host "Listo. Revisa la carpeta .\reportes"
+
+
+
+dot -Tpng .\reportes\05-graph.dot -o .\reportes\06-graph.png

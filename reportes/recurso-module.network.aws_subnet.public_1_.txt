@@ -1,0 +1,33 @@
+﻿# module.network.aws_subnet.public[1]:
+resource "aws_subnet" "public" {
+    arn                                            = "arn:aws:ec2:us-east-1:092830353421:subnet/subnet-0644f958ca53fa835"
+    assign_ipv6_address_on_creation                = false
+    availability_zone                              = "us-east-1d"
+    availability_zone_id                           = "use1-az4"
+    cidr_block                                     = "172.16.20.128/25"
+    customer_owned_ipv4_pool                       = [90mnull[0m[0m
+    enable_dns64                                   = false
+    enable_lni_at_device_index                     = 0
+    enable_resource_name_dns_a_record_on_launch    = false
+    enable_resource_name_dns_aaaa_record_on_launch = false
+    id                                             = "subnet-0644f958ca53fa835"
+    ipv6_cidr_block                                = [90mnull[0m[0m
+    ipv6_cidr_block_association_id                 = [90mnull[0m[0m
+    ipv6_native                                    = false
+    map_customer_owned_ip_on_launch                = false
+    map_public_ip_on_launch                        = true
+    outpost_arn                                    = [90mnull[0m[0m
+    owner_id                                       = "092830353421"
+    private_dns_hostname_type_on_launch            = "ip-name"
+    region                                         = "us-east-1"
+    tags                                           = {
+        "Name" = "Public-dev-1"
+    }
+    tags_all                                       = {
+        "Environment" = "dev"
+        "ManagedBy"   = "Terraform"
+        "Name"        = "Public-dev-1"
+        "Project"     = "Proyecto_D-una"
+    }
+    vpc_id                                         = "vpc-0f30dcd5849359bdd"
+}

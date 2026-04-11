@@ -1,0 +1,124 @@
+flowchart TB
+
+    %% Estilos Profesionales
+    classDef cloud fill:#f9f9f9,stroke:#232F3E,stroke-width:2px;
+    classDef vpc fill:#fff,stroke:#3B48CC,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef az fill:#fff,stroke:#00A1C9,stroke-width:1px,stroke-dasharray: 5 5;
+    classDef pub fill:#e1f8e9,stroke:#2e7d32,stroke-width:1px;
+    classDef priv fill:#e3f2fd,stroke:#1565c0,stroke-width:1px;
+    classDef db fill:#fff3e0,stroke:#ef6c00,stroke-width:1px;
+    classDef k3s fill:#326ce5,color:#fff,stroke-width:2px;
+    classDef admin fill:#f3e5f5,stroke:#6a1b9a,stroke-width:1px;
+    classDef invisible fill:none,stroke:none,color:#232F3E,font-weight:bold,font-size:28px;
+    classDef invisibleVPC fill:none,stroke:none,color:#3B48CC,font-weight:bold,font-size:20px;
+
+    %% Usuarios / Actores Externos
+    subgraph Usuarios [ ]
+        direction LR
+        Cliente([fa:fa-laptop Cliente])
+        Proveedor([fa:fa-building Proveedor])
+        Administrador([fa:fa-user-shield Administrador])
+        Lens[fa:fa-desktop Lens]
+    end
+
+    Cliente & Proveedor & Administrador -- "HTTPS:443" ---> WAF[1. AWS WAF]
+
+    subgraph AWS [" "]
+        L1[fa:fa-cloud <br/> AWS <br/> Cloud]:::invisible
+        L1 ~~~ WAF
+
+        WAF --> ALB[2. Application Load Balancer]
+
+        S3[(Amazon S3<br/>Assets)]
+
+        subgraph VPC [" "]
+            L2[fa:fa-network-wired VPC <br/> 172.16.20.0/22]:::invisibleVPC
+
+            %% AZ 1
+            subgraph AZ1 [Availability Zone 1 - us-east-1a]
+                subgraph PUB1 [Red Publica]
+                    NAT1[NAT Gateway]
+                end
+                subgraph PRIV1 [Red Privada K3s]
+                    M1{{Master K3s - 172.16.21.10}}
+                    W1[[worker-dev-1-ppal<br/>172.16.21.58<br/>Client-BFF<br/>max-pods=3]]
+                    P1[(Pod 1)]
+                    P2[(Pod 2)]
+                    P3[(Pod 3)]
+                end
+                subgraph DB_SUB1 [Red de Datos]
+                    RDS_P[(RDS Primary)]
+                end
+            end
+
+            %% AZ 2
+            subgraph AZ2 [Availability Zone 2 - us-east-1d]
+                subgraph PUB2 [Red Publica]
+                    NAT2[NAT Gateway]
+                end
+                subgraph PRIV2 [Red Privada K3s]
+                    M2{{Master K3s - 172.16.21.138}}
+                    W2[[worker-dev-2-second<br/>172.16.21.183<br/>Provider-BFF<br/>max-pods=3]]
+                    P4[(Pod 1)]
+                    P5[(Pod 2)]
+                    P6[(Pod 3)]
+                end
+                subgraph DB_SUB2 [Red de Datos]
+                    RDS_S[(RDS Standby)]
+                end
+            end
+
+            IGW[Internet Gateway]
+        end
+
+        SSM[AWS Systems Manager<br/>Session Manager]
+    end
+
+    %% Conexiones de aplicacion
+    ALB --> W1
+    ALB --> W2
+    W1 -- "DB:5432" --> RDS_P
+    W2 -- "DB:5432" --> RDS_P
+    RDS_P -. "Sync" .-> RDS_S
+
+    %% S3 Assets (GAP-INFRA-002)
+    W1 -. "S3 API" .-> S3
+    W2 -. "S3 API" .-> S3
+    Cliente -. "GET (CORS)" .-> S3
+    Proveedor -. "GET (CORS)" .-> S3
+
+    %% Cluster K3s
+    W1 <-->|"K3s API/Node"| M1
+    W2 <-->|"K3s API/Node"| M2
+    M2 <-->|"Control-plane sync"| M1
+    W1 --> P1
+    W1 --> P2
+    W1 --> P3
+    W2 --> P4
+    W2 --> P5
+    W2 --> P6
+
+    %% Egreso privado
+    W1 -.-> NAT1
+    W2 -.-> NAT2
+    M1 -.-> NAT1
+    M2 -.-> NAT2
+    NAT1 --> IGW
+    NAT2 --> IGW
+
+    %% Administracion segura
+    Lens -- "SSM Tunnel localhost:6443" --> SSM
+    SSM -. "Port-forward 6443" .-> M1
+    Administrador -. "AWS CLI + scripts" .-> Lens
+
+    %% Forzar alineacion vertical
+    PUB1 ~~~ PRIV1 ~~~ DB_SUB1
+    PUB2 ~~~ PRIV2 ~~~ DB_SUB2
+
+    %% Aplicacion de clases
+    class AWS cloud; class VPC vpc; class AZ1,AZ2 az;
+    class PUB1,PUB2 pub; class PRIV1,PRIV2 priv; class DB_SUB1,DB_SUB2 db;
+    class M1,M2,W1,W2 k3s;
+    class Lens,SSM admin;
+    class S3 db;
+
