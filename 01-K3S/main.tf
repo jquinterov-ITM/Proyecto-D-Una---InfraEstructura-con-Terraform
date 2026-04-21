@@ -18,8 +18,8 @@ module "security" {
 module "compute" {
   source           = "./modules/compute"
   public_subnet    = module.network.public_subnets[0]
-  app_subnets      = [module.network.public_subnets[0], module.network.app_private_subnets[0], module.network.app_private_subnets[0]]
-  app_subnet_cidrs = [local.config.pub_subnets[0], local.config.app_subnets[0], local.config.app_subnets[0]]
+  app_subnets      = [module.network.app_private_subnets[0], module.network.app_private_subnets[0]]
+  app_subnet_cidrs = [local.config.app_subnets[0], local.config.app_subnets[0]]
   sg_master_id     = module.security.sg_master_id
   sg_worker_id     = module.security.sg_worker_id
   master_count     = local.config.master_count

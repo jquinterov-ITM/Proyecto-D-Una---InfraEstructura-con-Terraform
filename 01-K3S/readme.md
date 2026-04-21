@@ -46,9 +46,9 @@ El proyecto está organizado en módulos para una mejor gestión y escalabilidad
    terraform apply
    ```
 
-## Diagrama de Arquitectura (Subred Mixta y Nombres de Rol)
+## Diagrama de Arquitectura (Subred Privada - 2 Workers)
 
-El siguiente diagrama representa la arquitectura actual, donde el **Master** y el **Worker 1 (Front)** se encuentran en la subred pública, mientras que los **Workers 2 y 3 (BFF)** y los recursos de datos se mantienen en la subred privada de la Zona A para mayor seguridad:
+El siguiente diagrama representa la arquitectura simplificada, donde el **Master** se encuentra en la subred pública para administración, y los **2 Workers (Front y BFF)** se encuentran protegidos en la subred privada de la Zona A:
 
 ```mermaid
 architecture-beta
@@ -59,11 +59,10 @@ architecture-beta
             service alb(server)[ALB] in pub_subnet
             service nat(server)[NAT Gateway] in pub_subnet
             service master(server)[K3s Master] in pub_subnet
-            service worker1(server)[Worker Front] in pub_subnet
         
         group priv_subnet_app(cloud)[Private App Subnet A] in vpc
+            service worker1(server)[Worker Front] in priv_subnet_app
             service worker2(server)[Worker BFF] in priv_subnet_app
-            service worker3(server)[Worker BFF] in priv_subnet_app
         
         group priv_subnet_data(cloud)[Private Data Subnet] in vpc
             service db(database)[DB Resources] in priv_subnet_data
@@ -74,24 +73,24 @@ architecture-beta
     
     alb:B -- T:worker1
     alb:B -- T:worker2
-    alb:B -- T:worker3
     
     master:B -- L:worker1
     master:B -- L:worker2
-    master:B -- L:worker3
 
-    worker2:T -- B:nat
+    worker1:T -- B:nat
     nat:L -- R:igw
 ```
 
-### Características de la Configuración Actual
-- **Master y Worker Front en Subred Pública**: Facilidad de acceso directo para administración y despliegue de componentes de cara al usuario.
-- **Workers BFF en Subred Privada**: Capa de servicios internos (Backend-for-Frontend) protegida dentro de la red privada, con salida a internet vía un único **NAT Gateway**.
-- **Consolidación en Zona de Disponibilidad A**: Todos los nodos de trabajo y el NAT Gateway se encuentran en la zona `us-east-1a` para simplificar la topología y reducir costos de transferencia de datos inter-zona.
-- **Nombres de Rol**: Las instancias están etiquetadas según su función (`Front` y `BFF`) para una identificación rápida en la consola de AWS.
+### Cambios Recientes
+- **Reducción a 2 Workers**: Se eliminó un worker para simplificar el clúster.
+- **Migración a Red Privada**: Todos los workers ahora residen en la subred privada de la Zona `us-east-1a`.
+- **Nombres de Rol**: 
+  - `worker-1-front`: Dedicado a tareas de Front-end.
+  - `worker-2-bff`: Dedicado a tareas de Backend-for-Frontend.
+- **Acceso**: El balanceador (ALB) sigue distribuyendo el tráfico a ambos workers desde la red pública.
 
 ## Despliegue Actualizado
 1. **Inicializar**: `terraform init`
-2. **Validación**: `terraform validate` (Configuración simplificada y etiquetada validada exitosamente).
+2. **Validación**: `terraform validate` (Configuración de 2 workers privados validada exitosamente).
 3. **Planificar**: `terraform plan`
 4. **Aplicar**: `terraform apply`
