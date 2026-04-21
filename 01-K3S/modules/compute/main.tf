@@ -1,10 +1,6 @@
 
 locals {
-  app_subnets_effective = var.app_subnets
-  total_masters         = var.master_count
-  master_private_ips    = [for i in range(var.master_count) : cidrhost(var.app_subnet_cidrs[i % length(var.app_subnet_cidrs)], 10 + i)]
-  instance_profile_name = null # O el valor correcto si se usa IAM
-  worker_suffixes       = ["front", "bff"]
+  worker_suffixes = ["front", "bff"]
 }
 
 resource "aws_instance" "master" {

@@ -1,13 +1,17 @@
 #Region
-variable "aws_region" { default = "us-east-1" }
 variable "key_name"   { default = "testKey" }
 #variable "my_ip"      { default = "201.233.77.14/32" } # mi ip publica con mascara
 variable "my_ip"      { default = "0.0.0.0/0" }
 
+variable "env" {
+  description = "Execution environment"
+  type        = string
+  default     = "dev"
+}
+
 locals {
   envs = {
     "dev" = {
-      master_count    = 2
       worker_count    = 2
       worker_max_pods = 7
       master_type     = "t3.medium", worker_type = "t3.large"

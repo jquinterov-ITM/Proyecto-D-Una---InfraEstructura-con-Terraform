@@ -13,11 +13,6 @@ variable "app_subnet_cidrs" {
   type        = list(string)
 }
 
-variable "master_count" {
-  description = "Cantidad de nodos master para HA"
-  type        = number
-}
-
 variable "worker_count" {
   description = "Cantidad total de nodos worker"
   type        = number

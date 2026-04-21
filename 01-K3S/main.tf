@@ -22,7 +22,6 @@ module "compute" {
   app_subnet_cidrs = [local.config.app_subnets[0], local.config.app_subnets[0]]
   sg_master_id     = module.security.sg_master_id
   sg_worker_id     = module.security.sg_worker_id
-  master_count     = local.config.master_count
   worker_count     = local.config.worker_count
   worker_max_pods  = local.config.worker_max_pods
   master_type      = local.config.master_type

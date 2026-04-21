@@ -6,11 +6,6 @@ resource "aws_vpc" "main" {
 
 # Tag a la route table principal (default) creada automaticamente por AWS
 # para identificarla claramente en la consola.
-resource "aws_ec2_tag" "main_route_table_name" {
-  resource_id = aws_vpc.main.main_route_table_id
-  key         = "Name"
-  value       = "RT-Main-${var.env}"
-}
 
 ######### Internet Gateway #########
 resource "aws_internet_gateway" "igw" { vpc_id = aws_vpc.main.id }
@@ -51,29 +46,6 @@ resource "aws_nat_gateway" "nat" {
   count         = 1
   allocation_id = aws_eip.nat[0].id
   subnet_id     = aws_subnet.public[0].id
-}
-
-resource "aws_network_acl" "main" {
-  vpc_id     = aws_vpc.main.id
-  subnet_ids = concat(aws_subnet.public[*].id, aws_subnet.app[*].id, aws_subnet.data[*].id)
-
-  ingress {
-    protocol   = "-1"
-    rule_no    = 100
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0
-  }
-  egress {
-    protocol   = "-1"
-    rule_no    = 100
-    action     = "allow"
-    cidr_block = "0.0.0.0/0"
-    from_port  = 0
-    to_port    = 0
-  }
-  tags = { Name = "NACL-${var.env}" }
 }
 
 ######### Route Tables #########
