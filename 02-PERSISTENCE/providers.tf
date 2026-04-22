@@ -3,7 +3,7 @@ terraform {
 
   backend "s3" {
     bucket  = "jquinterov.seminario2"
-    key     = "Duna/k3s/terraform.tfstate"
+    key     = "Duna/persistence/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true
     profile = "default"

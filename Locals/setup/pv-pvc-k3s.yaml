@@ -1,0 +1,89 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: n8n-service
+spec:
+  type: NodePort
+  ports:
+    - port: 5678
+      targetPort: 5678
+      nodePort: 30567 # Puerto permanente de acceso
+  selector:
+    app: n8n
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: n8n
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: n8n
+  template:
+    metadata:
+      labels:
+        app: n8n
+    spec:
+      # InitContainer para corregir permisos de escritura en EFS
+      initContainers:
+      - name: volume-permissions
+        image: busybox
+        command: ["sh", "-c", "chown -R 1000:1000 /home/node/.n8n"]
+        volumeMounts:
+        - name: n8n-data
+          mountPath: /home/node/.n8n
+      containers:
+      - name: n8n
+        image: n8nio/n8n:latest
+        ports:
+          - containerPort: 5678
+        env:
+          # --- Conexión al RDS ---
+          - name: DB_TYPE
+            value: postgresdb
+          - name: DB_POSTGRESDB_HOST
+            value: "db-n8n-dev.ca2udjb2ahtx.us-east-1.rds.amazonaws.com"
+          - name: DB_POSTGRESDB_PORT
+            value: "5432"
+          - name: DB_POSTGRESDB_DATABASE
+            value: "postgres"
+          - name: DB_POSTGRESDB_USER
+            value: "admin_user"
+          - name: DB_POSTGRESDB_PASSWORD
+            valueFrom:
+              secretKeyRef:
+                name: n8n-secrets
+                key: db-password
+          # --- Configuración SSL para RDS ---
+          - name: DB_POSTGRESDB_SSL_REJECT_UNAUTHORIZED
+            value: "false"
+          - name: DB_POSTGRESDB_SSL_CA
+            value: ""
+          # --- Configuración n8n ---
+          - name: N8N_ENCRYPTION_KEY
+            valueFrom:
+              secretKeyRef:
+                name: n8n-secrets
+                key: encryption-key
+          - name: N8N_HOST
+            value: "0.0.0.0"
+          - name: N8N_SECURE_COOKIE
+            value: "false"
+        volumeMounts:
+          - name: n8n-data
+            mountPath: /home/node/.n8n
+      volumes:
+        - name: n8n-data
+          persistentVolumeClaim:
+            claimName: efs-pvc-ia # PVC vinculado en el Lab 3
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: n8n-secrets
+  namespace: default
+type: Opaque
+stringData:
+  db-password: "pass*n8n"
+  encryption-key: "ij3wodj)=)023ldks**-sd"                  

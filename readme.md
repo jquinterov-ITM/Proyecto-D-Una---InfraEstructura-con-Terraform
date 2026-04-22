@@ -6,17 +6,21 @@ Este proyecto automatiza la creación de un clúster de **K3s** altamente dispon
 
 El proyecto está organizado en módulos para una mejor gestión y escalabilidad:
 
-- **`modules/network`**: Configura la VPC, subredes (Públicas, Privadas App, Privadas Datos), Internet Gateway y NAT Gateway.
-- **`modules/security`**: Define los Security Groups para el Balanceador de Carga (ALB), los nodos Master y los nodos Worker.
-- **`modules/compute`**: Despliega las instancias EC2 para los nodos Master (en subred pública) y Worker (distribuidos entre subred pública y privada), configurando K3s mediante `user_data`.
-- **`modules/load_balancer`**: Configura un Application Load Balancer (ALB) para distribuir el tráfico hacia los workers en ambas subredes.
+- **`01-K3S/`**: Infraestructura base distribuida en módulos:
+    - **`network`**: Configura la VPC, subredes (Públicas, Privadas App, Privadas Datos), Internet Gateway y NAT Gateway.
+    - **`security`**: Define los Security Groups para el Balanceador de Carga (ALB), los nodos Master y los nodos Worker.
+    - **`compute`**: Despliega las instancias EC2 para los nodos Master (en subred pública) y Worker (en subred privada), configurando K3s mediante `user_data`.
+    - **`load_balancer`**: Configura un Application Load Balancer (ALB) para distribuir el tráfico hacia los workers.
+- **`02-PERSISTENCE/`**: Servicios de persistencia de datos:
+    - **`db`**: Instancia de Amazon RDS (PostgreSQL) para n8n, protegida en subredes de datos.
+    - **`storage`**: Amazon EFS (Elastic File System) para almacenamiento compartido/persistente del clúster K3s.
 
 ## Características Principales
 
-- **Arquitectura Híbrida**: Nodo Master y el primer Worker en subred pública para facilitar la administración y pruebas iniciales.
-- **Seguridad**: Workers adicionales y recursos de datos protegidos en subredes privadas. Acceso controlado mediante Security Groups y NAT Gateway.
-- **Escalabilidad**: Definición de entornos (vía `locals` y `terraform.workspace`) para ajustar el tamaño del clúster (dev/prod).
-- **Backend Remoto**: Configurado para usar un bucket S3 para el estado de Terraform.
+- **Arquitectura Híbrida**: Nodo Master en subred pública para administración y Workers protegidos en subred privada.
+- **Persistencia Robusta**: Base de datos gestionada (RDS) y almacenamiento compartido (EFS) con acceso restringido solo a los Workers.
+- **Seguridad**: Uso de subredes privadas, NAT Gateway para salida a internet y Security Groups específicos por rol.
+- **Infraestructura como Código (IaC)**: Organizado en capas (K3S y Persistence) para modularizar el despliegue.
 
 ## Requisitos Previos
 
@@ -65,7 +69,8 @@ architecture-beta
             service worker2(server)[Worker BFF] in priv_subnet_app
         
         group priv_subnet_data(cloud)[Private Data Subnet] in vpc
-            service db(database)[DB Resources] in priv_subnet_data
+            service rds(database)[RDS Postgres] in priv_subnet_data
+            service efs(disk)[EFS Storage] in priv_subnet_data
 
     %% Relaciones
     igw:B -- T:alb
@@ -78,16 +83,22 @@ architecture-beta
     master:B -- L:worker2
 
     worker1:T -- B:nat
+    worker2:T -- B:nat
     nat:L -- R:igw
+
+    worker1:B -- T:rds
+    worker2:B -- T:rds
+    worker1:B -- T:efs
+    worker2:B -- T:efs
 ```
 
-### Cambios Recientes
-- **Reducción a 2 Workers**: Se eliminó un worker para simplificar el clúster.
-- **Migración a Red Privada**: Todos los workers ahora residen en la subred privada de la Zona `us-east-1a`.
+### Cambios Recientes (Actualizado)
+- **Capa de Persistencia**: Se implementó el módulo `02-PERSISTENCE` con RDS (Postgres 17.6) y EFS.
+- **Reducción a 2 Workers**: Se optimizó el clúster a 2 nodos workers en subred privada.
+- **Seguridad de Datos**: Los servicios de persistencia (RDS/EFS) solo permiten tráfico desde el Security Group de los Workers.
 - **Nombres de Rol**: 
   - `worker-1-front`: Dedicado a tareas de Front-end.
   - `worker-2-bff`: Dedicado a tareas de Backend-for-Frontend.
-- **Acceso**: El balanceador (ALB) sigue distribuyendo el tráfico a ambos workers desde la red pública.
 
 ## Despliegue Actualizado
 1. **Inicializar**: `terraform init`
