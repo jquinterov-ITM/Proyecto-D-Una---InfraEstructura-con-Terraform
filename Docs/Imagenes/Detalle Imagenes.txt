@@ -1,0 +1,31 @@
+IMAGENES
+
+PROYECTO 1 = 01-K3S
+    1.1 terraform init.png
+    1.2 terraform validate
+    1.3 terraform plan_1
+    1.4 terraform plan_2
+    1.5 terraform apply_1
+    1.6 terraform apply_2
+    1.7 terraform apply_3
+    
+PROYECTO 2 = 02-PERSISTENCE
+    2.1 terraform init
+    2.2 terraform plan
+    2.3 terraform apply_1
+    2.4 terraform apply_2
+    2.4 terraform apply_3
+    2.5 terraform apply_4
+    
+PROYECTO 3 = 03-K3S-Storage
+    3.1 pv&Pvc_Lens
+    
+PROYECTO 4 = 04-N8N
+    4.1 n8n_secrets
+    4.2 n8n-deployment
+    4.3 n8n
+    4.4 n8n-pods
+    4.5 n8n_web
+    
+PROYECTO 5 = 05-OLLAMA
+    5.1 ollama-deployment

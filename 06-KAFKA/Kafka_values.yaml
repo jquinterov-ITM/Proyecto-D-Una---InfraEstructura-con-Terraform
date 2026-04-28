@@ -2,6 +2,9 @@
 # Puedes modificar estos valores según tus necesidades
 
 replicaCount: 1
+image:
+  registry: registry.bitnami.com
+  repository: bitnami/kafka
 zookeeper:
   replicaCount: 1
 resources:
@@ -11,6 +14,5 @@ resources:
   limits:
     memory: 1Gi
     cpu: 500m
-# Para exponer Kafka fuera del clúster, puedes cambiar el tipo de servicio:
 service:
   type: ClusterIP # Cambia a NodePort o LoadBalancer si lo necesitas

@@ -35,7 +35,7 @@ spec:
           mountPath: /home/node/.n8n
       containers:
       - name: n8n
-        image: n8nio/n8n:latest
+        image: n8nio/n8n:0.226.0
         ports:
           - containerPort: 5678
         env:
@@ -43,13 +43,25 @@ spec:
           - name: DB_TYPE
             value: postgresdb
           - name: DB_POSTGRESDB_HOST
-            value: "db-n8n-dev.cjg1jd3af1v1.us-east-1.rds.amazonaws.com" # <--- Cambia esto por el endpoint de tu RDS
+            valueFrom:
+              configMapKeyRef:
+                name: n8n-config
+                key: DB_POSTGRESDB_HOST
           - name: DB_POSTGRESDB_PORT
-            value: "5432"
+            valueFrom:
+              configMapKeyRef:
+                name: n8n-config
+                key: DB_POSTGRESDB_PORT
           - name: DB_POSTGRESDB_DATABASE
-            value: "postgres"
+            valueFrom:
+              configMapKeyRef:
+                name: n8n-config
+                key: DB_POSTGRESDB_DATABASE
           - name: DB_POSTGRESDB_USER
-            value: "admin_user"
+            valueFrom:
+              secretKeyRef:
+                name: n8n-secrets
+                key: db-user
           - name: DB_POSTGRESDB_PASSWORD
             valueFrom:
               secretKeyRef:
@@ -67,13 +79,19 @@ spec:
                 name: n8n-secrets
                 key: encryption-key
           - name: N8N_HOST
-            value: "0.0.0.0"
+            valueFrom:
+              configMapKeyRef:
+                name: n8n-config
+                key: N8N_HOST
           - name: N8N_SECURE_COOKIE
-            value: "false"
+            valueFrom:
+              configMapKeyRef:
+                name: n8n-config
+                key: N8N_SECURE_COOKIE
         volumeMounts:
           - name: n8n-data
             mountPath: /home/node/.n8n
       volumes:
         - name: n8n-data
           persistentVolumeClaim:
-            claimName: efs-pvc-ia # PVC vinculado en el Lab 3
+            claimName: n8n-pvc
