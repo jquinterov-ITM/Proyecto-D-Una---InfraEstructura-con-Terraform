@@ -50,9 +50,9 @@ El proyecto está organizado en módulos para una mejor gestión y escalabilidad
    terraform apply
    ```
 
-## Diagrama de Arquitectura (Subred Privada - 2 Workers)
+## Diagrama de Arquitectura (Subred Privada - 4 Workers)
 
-El siguiente diagrama representa la arquitectura simplificada, donde el **Master** se encuentra en la subred pública para administración, y los **2 Workers (Front y BFF)** se encuentran protegidos en la subred privada de la Zona A:
+El siguiente diagrama representa la arquitectura simplificada, donde el **Master** se encuentra en la subred pública para administración, y los **4 Workers** (`worker_1`, `worker_2`, `worker_3`, `worker_4`) se encuentran protegidos en la subred privada:
 
 ```mermaid
 flowchart TB
