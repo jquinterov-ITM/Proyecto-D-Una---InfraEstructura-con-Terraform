@@ -55,41 +55,76 @@ El proyecto está organizado en módulos para una mejor gestión y escalabilidad
 El siguiente diagrama representa la arquitectura simplificada, donde el **Master** se encuentra en la subred pública para administración, y los **2 Workers (Front y BFF)** se encuentran protegidos en la subred privada de la Zona A:
 
 ```mermaid
-architecture-beta
-    group vpc(cloud)[AWS VPC]
-        service igw(internet)[Internet Gateway] in vpc
+flowchart TB
+    classDef cloud fill:#fff,stroke:#232F3E,stroke-width:4px;
+    classDef vpc stroke:#3B48CC,stroke:#3B48CCstroke-width:2px,stroke-dasharray: 5 5;
+    classDef pub fill:#e1f8e9,stroke:#2e7d32,stroke-width:1px;
+    classDef priv fill:#e3f2fd,stroke:#1565c0,stroke-width:1px;
+    classDef db fill:#fff,stroke:#ef6c00,stroke-width:1px;
+    classDef k3s fill:#326ce5,color:#fff,stroke-width:2px;
+    classDef invisibleVPC fill:none,stroke:none,color:#3B48CC,font-weight:bold,font-size:25px;
 
-        group pub_subnet(cloud)[Public Subnet A] in vpc
-            service alb(server)[ALB] in pub_subnet
-            service nat(server)[NAT Gateway] in pub_subnet
-            service master(server)[K3s Master] in pub_subnet
-        
-        group priv_subnet_app(cloud)[Private App Subnet A] in vpc
-            service worker1(server)[Worker Front] in priv_subnet_app
-            service worker2(server)[Worker BFF] in priv_subnet_app
-        
-        group priv_subnet_data(cloud)[Private Data Subnet] in vpc
-            service rds(database)[RDS Postgres] in priv_subnet_data
-            service efs(disk)[EFS Storage] in priv_subnet_data
 
-    %% Relaciones
-    igw:B -- T:alb
-    igw:B -- T:master
+    %% Usuarios 
+    subgraph Usuarios [ ]
+        direction LR
+        Cliente([fa:fa-laptop Cliente])
+        Proveedor([fa:fa-building Proveedor])
+        Administrador([fa:fa-user-shield Administrador])
+        Lens[fa:fa-desktop Lens]
+    end
     
-    alb:B -- T:worker1
-    alb:B -- T:worker2
+    Cliente & Proveedor & Administrador -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
     
-    master:B -- L:worker1
-    master:B -- L:worker2
+    HTTPS --> ALB
+    
+    subgraph AWS ["fa:fa-cloud AWS Cloud"]
+        ALB[ALB]
+        S3[(Amazon S3<br/>Assets)]
+        
+        subgraph VPC [" "]
+            L2[fa:fa-network-wired VPC <br/> 172.16.20.0/22]:::invisibleVPC
+            
+            subgraph PUB1 [Red Pública]
+                NAT1[NAT Gateway]
+                M1{{Master K3s}}
+            end
+            subgraph PRIV1 [Red Privada K3s]
+                W1[[Worker_1]]
+                W2[[Worker_2]]
+                W3[[Worker_3]]
+                W4[[Worker_4]]
+            end
+            subgraph DB_SUB1 [Red de Datos]
+                RDS[(RDS Postgres)]
+                RDS_S[(RDS Standby)]
+                EFS[(EFS Storage)]
+            end
+            IGW[Internet Gateway]
+        end
+    end
+    Internet([fa:fa-globe Internet])
 
-    worker1:T -- B:nat
-    worker2:T -- B:nat
-    nat:L -- R:igw
+    %% Administracion segura
+    Administrador --> Lens -- "SSM Tunnel localhost:6443" --> M1
 
-    worker1:B -- T:rds
-    worker2:B -- T:rds
-    worker1:B -- T:efs
-    worker2:B -- T:efs
+    %% Conexiones de aplicacion
+    ALB --> PUB1
+    M1 -- "Tráfico Interno" --> PRIV1
+    PRIV1 -- "DB: 5432" --> RDS
+    RDS -. "Sync" .-> RDS_S
+    PRIV1 -- "EFS" --> EFS
+   
+
+    %% S3 Assets (GAP-INFRA-002)
+    PRIV1 -. "S3 API" .-> S3
+    HTTPS -. "GET" .-> S3
+
+    %% Salida a Internet restringida por NAT
+    PRIV1 ==Salida a internet==> NAT1 ==Salida a internet==> IGW ==> Internet
+
+    class AWS cloud; class VPC vpc; class PUB1 pub;
+    class PRIV1 priv; class DB_SUB1,S3 db; class M1,W1,W2,W3,W4 k3s;
 ```
 
 ### Cambios Recientes (Actualizado)
