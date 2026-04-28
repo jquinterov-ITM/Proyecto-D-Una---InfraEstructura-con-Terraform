@@ -16,8 +16,10 @@ flowchart TB
                 M1{{Master K3s}}
             end
             subgraph PRIV1 [Red Privada K3s]
-                W1[[Worker Front]]
-                W2[[Worker BFF]]
+                W1[[worker_1]]
+                W2[[worker_2]]
+                W3[[worker_3]]
+                W4[[worker_4]]
             end
             subgraph DB_SUB1 [Red de Datos]
                 RDS[(RDS Postgres)]

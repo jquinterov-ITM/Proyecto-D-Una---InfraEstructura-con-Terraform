@@ -90,10 +90,10 @@ flowchart TB
                 M1{{Master K3s}}
             end
             subgraph PRIV1 [Red Privada K3s]
-                W1[[Worker_1]]
-                W2[[Worker_2]]
-                W3[[Worker_3]]
-                W4[[Worker_4]]
+                W1[[worker_1]]
+                W2[[worker_2]]
+                W3[[worker_3]]
+                W4[[worker_4]]
             end
             subgraph DB_SUB1 [Red de Datos]
                 RDS[(RDS Postgres)]
@@ -127,16 +127,14 @@ flowchart TB
     class PRIV1 priv; class DB_SUB1,S3 db; class M1,W1,W2,W3,W4 k3s;
 ```
 
+
 ### Cambios Recientes (Actualizado)
 - **Capa de Persistencia**: Se implementó el módulo `02-PERSISTENCE` con RDS (Postgres 17.6) y EFS.
-- **Reducción a 2 Workers**: Se optimizó el clúster a 2 nodos workers en subred privada.
+- **Aumento a 4 Workers**: El clúster ahora tiene 4 workers en subred privada, nombrados genéricamente `worker_1`, `worker_2`, `worker_3`, `worker_4`.
 - **Seguridad de Datos**: Los servicios de persistencia (RDS/EFS) solo permiten tráfico desde el Security Group de los Workers.
-- **Nombres de Rol**: 
-  - `worker-1-front`: Dedicado a tareas de Front-end.
-  - `worker-2-bff`: Dedicado a tareas de Backend-for-Frontend.
 
 ## Despliegue Actualizado
 1. **Inicializar**: `terraform init`
-2. **Validación**: `terraform validate` (Configuración de 2 workers privados validada exitosamente).
+2. **Validación**: `terraform validate` (Configuración de 4 workers privados validada exitosamente).
 3. **Planificar**: `terraform plan`
 4. **Aplicar**: `terraform apply`

@@ -1,7 +1,6 @@
 
-locals {
-  worker_suffixes = ["front", "bff"]
-}
+// Eliminado worker_suffixes para nombres genéricos
+
 
 resource "aws_instance" "master" {
   ami                         = "ami-0c7217cdde317cfec"
@@ -35,7 +34,7 @@ resource "aws_instance" "worker" {
               K3S_TOKEN=${var.k3s_token} sh -s - agent --kubelet-arg=max-pods=${var.worker_max_pods}
               EOF
   tags = {
-    Name = "worker-${count.index + 1}-${length(local.worker_suffixes) > count.index ? local.worker_suffixes[count.index] : "worker"}"
+    Name = "worker_${count.index + 1}"
   }
 }
 
