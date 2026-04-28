@@ -8,7 +8,7 @@ export TF_WORKSPACE="dev"
 export TF_VAR_aws_region="us-east-1"
 #IP pública: => (Invoke-RestMethod -Uri "https://api.ipify.org")
 export TF_VAR_my_ip="201.233.77.14/32"
-export TF_VAR_aws_profile="Seminario2"
+export TF_VAR_aws_profile="default"
  
 # Network and Compute Variables
 export TF_VAR_key_name="testKey"
@@ -29,4 +29,6 @@ export TF_VAR_db_allocated_storage=20
 export TF_VAR_db_password="12345678"
  
 echo "Context switched to DEV"
- 
+
+# Para leer variables de este archivo, ejecutar en Git Bash:
+# echo $TF_WORKSPACE

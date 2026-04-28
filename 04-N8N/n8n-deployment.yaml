@@ -43,7 +43,7 @@ spec:
           - name: DB_TYPE
             value: postgresdb
           - name: DB_POSTGRESDB_HOST
-            value: "db-n8n-default.cjg1jd3af1v1.us-east-1.rds.amazonaws.com" # <--- Cambia esto por el endpoint de tu RDS
+            value: "db-n8n-dev.cjg1jd3af1v1.us-east-1.rds.amazonaws.com" # <--- Cambia esto por el endpoint de tu RDS
           - name: DB_POSTGRESDB_PORT
             value: "5432"
           - name: DB_POSTGRESDB_DATABASE

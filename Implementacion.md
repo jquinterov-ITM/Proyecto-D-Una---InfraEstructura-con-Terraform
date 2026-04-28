@@ -7,7 +7,7 @@ Para que guarde los estados de terraform, con el nombre: `aws-proyecto-d-una` (o
 - Se crea un Bucket de proposito general
   - en mi caso es `jquinterov.seminario2`
 
-## Ejecutar SH "Git Bash"
+## Ejecutar SH en "Git Bash"
 Para cargar las variables (no me funciona bien)
 - MAC o Windows en "Git Bash"
   > source Locals/setup/dev.sh
@@ -52,10 +52,10 @@ Tener a la mano el archivo **testKey.pem** (o el keypair tuyo y poner el nombre)
 # USUARIO: Ubuntu@**ipPublicaDelMaster** o como sea la maquina
 
 # Descargar el archivo de configuracion
-ssh -i "testKey.pem" ubuntu@3.84.88.209 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
+ssh -i "testKey.pem" ubuntu@3.82.45.66 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
 
 # Abrir tunel SSH desde consola distinta u otra terminal
-ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@3.84.88.209 -N
+ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@3.82.45.66 -N
 ```
 - Con el archivo de configuracion [k3s-config.yaml], copiamos lo que trajo y se pasa a lens
 - en **lens** (Se elimina default si existe)
@@ -116,7 +116,7 @@ Confirmar que se hicieron los pasos de *Descargar el archivo de configuracion* y
 
 
 
-### Proyecto "03-K3S-Storage"
+## Proyecto "03-K3S-Storage"
 se va a AWS ---> EFS
   - File system ID (se copia)
   - Se pega en archivo **03-K3S-Storage/pv-pvc-k3s.yaml**
@@ -130,7 +130,7 @@ se va a AWS ---> EFS
 
 
 
-### Proyecto 4
+## Proyecto 4
 Se saca la informacion del proyecto 4 (**04-N8N**)
 - Se crea un nuevo recurso:
   - Se pega lo de secrets.yaml
@@ -158,13 +158,29 @@ Se valida en:
 
 El servicio esta en:
 - Network
-  - Services & ingresses
+  - Services
     - Se confirma que el servicio esta corriendo y se saca la ip externa
 
 Prueba de N8N
 - Se abre el navegador con la ip externa que te asigno
-  - EJEMPLO: 3.84.88.209:30567
+  - EJEMPLO: 3.82.45.66:30567
 
+
+## Proyecto 5 "05-OLLAMA"
+- Se crea un nuevo recurso:
+- Se pega el contenido del archivo **ollama-deployment.yaml**
+- Se guarda y se confirma que el despliegue esta corriendo
+
+Se valida en:
+- Workloads
+  - Deployments
+    - Se confirma que Ollama esta corriendo
+    De lo contrario clic en los puntos y "restart"
+  - Pods
+  Si en "Status" dice "Running" y no tiene errores, esta bien.
+  Pero si dice ""Evited" o "CrashLoopBackOff", es que hay un error, y se puede revisar los logs para ver que esta pasando.
+  **“Evicted”** significa que Kubernetes eliminó esos pods porque el nodo (la máquina) se quedó sin recursos (memoria RAM o disco).
+  **“Pending”** significa que Kubernetes no encuentra dónde crear el pod, normalmente por falta de recursos.
 
 ---
 # FINALIZAR

@@ -16,6 +16,10 @@ resource "aws_instance" "master" {
               --tls-san=$PUBLIC_IP --write-kubeconfig-mode 644
               EOF
   tags                        = { Name = "Master-${var.env}" }
+  root_block_device {
+    volume_size = 20
+    volume_type = "gp3"
+  }
 }
 
 

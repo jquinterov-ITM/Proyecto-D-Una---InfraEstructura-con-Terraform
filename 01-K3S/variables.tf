@@ -12,7 +12,7 @@ variable "env" {
 locals {
   envs = {
     "dev" = {
-      worker_count    = 2
+      worker_count    = 4
       worker_max_pods = 7
       master_type     = "t3.medium", worker_type = "t3.large"
       vpc_cidr        = "172.16.20.0/22"
