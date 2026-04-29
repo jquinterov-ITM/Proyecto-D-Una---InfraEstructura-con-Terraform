@@ -52,10 +52,10 @@ Tener a la mano el archivo **testKey.pem** (o el keypair tuyo y poner el nombre)
 # USUARIO: Ubuntu@**ipPublicaDelMaster** o como sea la maquina
 
 # Descargar el archivo de configuracion
-ssh -i "testKey.pem" ubuntu@3.82.45.66 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
+ssh -i "testKey.pem" ubuntu@52.90.26.223 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
 
 # Abrir tunel SSH desde consola distinta u otra terminal
-ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@3.82.45.66 -N
+ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@52.90.26.223 -N
 ```
 - Con el archivo de configuracion [k3s-config.yaml], copiamos lo que trajo y se pasa a lens
 - en **lens** (Se elimina default si existe)
@@ -74,7 +74,7 @@ cd ..\02-PERSISTENCE\
 terraform init
 
 # Seleccionar workspace (opcional)
-terraform workspace select dev
+terraform workspace select dev || terraform workspace new dev
 
 # Validar configuración
 terraform validate
@@ -133,7 +133,7 @@ se va a AWS ---> EFS
 ## Proyecto 4
 Se saca la informacion del proyecto 4 (**04-N8N**)
 - Se crea un nuevo recurso:
-  - Se pega lo de secrets.yaml
+  - Se pega lo de **n8n-secret.yaml**
   > validar la contraseña que se puso en la BD, y se pega en el campo de "password" del secret
 
 - Se va a AWS:
@@ -144,10 +144,13 @@ Se saca la informacion del proyecto 4 (**04-N8N**)
 se saca el codigo de la BD para usarlo en N8N
 
   - Se abre **n8n-deployment.yaml**
-    - Se cambia lo de la db (linea 46)
-    Se pega lo que sacamos antes [Endpoint & port]:
-    > db-n8n-dev.cjg1jd3af1v1.us-east-1.rds.amazonaws.com
+    - Se cambia el endpoint de la BD en `DB_POSTGRESDB_HOST` por tu endpoint real.
+    __Linea 56__: `value: "db-n8n-dev.cjg1jd3af1v1.us-east-1.rds.amazonaws.com"`  por tu endpoint real de RDS
+    - Se deja el PVC como `efs-pvc-ia` (el que ya creaste en Proyecto 3).
+
 - Se crea un nuevo recurso:
+  - Se pega **n8n-deployment.yaml**
+
 
 Se valida en:
 - Workloads
@@ -163,7 +166,7 @@ El servicio esta en:
 
 Prueba de N8N
 - Se abre el navegador con la ip externa que te asigno
-  - EJEMPLO: 3.82.45.66:30567
+  - EJEMPLO: 52.90.26.223:30567
 
 ---
 ## Proyecto 5 "05-OLLAMA"
@@ -182,65 +185,184 @@ Se valida en:
   **“Evicted”** significa que Kubernetes eliminó esos pods porque el nodo (la máquina) se quedó sin recursos (memoria RAM o disco).
   **“Pending”** significa que Kubernetes no encuentra dónde crear el pod, normalmente por falta de recursos.
 
+**Versión usada y motivo**
+
+- **Imagen:** `ollama/ollama:0.1.48`
+- **Por qué:** elegimos una versión específica y más ligera porque la etiqueta `latest` incluye capas grandes (CUDA, binarios adicionales) que causaron fallos de extracción por falta de espacio efímero en los nodos. La versión `0.1.48` es más pequeña, reproducible y adecuada para clusters con disco raíz limitado; así evitamos problemas de extracción y disminuimos el uso temporal de snapshot del runtime.
+- **Si dispones de nodos con más espacio o GPU:** puedes cambiar a una imagen con soporte CUDA o a `latest`, pero ten en cuenta que necesitarás más espacio en `/var/lib/rancher/k3s/agent`.
+
+
+### Pruebas de Ollama (cuando no tienes kubectl instalado en tu PC)
+
+Abrir 3 terminales en tu PC:
+
+- **Terminal A (PC):** tunel SSH para exponer el puerto local `11434`
+```bash
+ssh -i "testKey.pem" -L 11434:127.0.0.1:11434 ubuntu@52.90.26.223 -N
+```
+
+- **Terminal B (PC -> Master):** entrar al master y abrir `port-forward`
+```bash
+ssh -i "testKey.pem" ubuntu@52.90.26.223
+kubectl get pods -l app=ollama -n default
+kubectl get svc ollama -n default
+kubectl port-forward svc/ollama 11434:11434 -n default
+```
+
+- **Terminal C (PC):** probar API de Ollama
+```bash
+curl http://localhost:11434/api/tags
+```
+
+Si responde `{"models":[]}` significa que Ollama esta bien, pero todavia no hay modelos descargados.
+
+### Descargar modelo y probar inferencia
+
+```bash
+# Descargar modelo pequeno para pruebas
+curl -X POST http://localhost:11434/api/pull -d "{\"name\":\"tinyllama\"}"
+
+# Ver modelos instalados
+curl http://localhost:11434/api/tags
+
+# Prueba de generacion
+curl -X POST http://localhost:11434/api/generate -d "{\"model\":\"tinyllama:latest\",\"prompt\":\"Hola, responde en una sola linea\",\"stream\":false}"
+```
+
 
 ## Proyecto 6 "06-KAFKA"
-- Se va al menu de la izquierda "Helm"
-    - Charts
-    - Buscar **\*.kafka** 
-    - **Instalar** bitnami/kafka
-    - en nameSpace "default"
-      1. DEJARLO COMO ESTA, SI FALLA PROBAR PASO 2
-      2. En "Set values" se pega el contenido del archivo **Kafka_values.yaml**
-    - Guardar (boton izquierda de disquette)
+Se recomienda desplegar Kafka con el operador Strimzi (más compatible y mantenido). A continuación están los pasos detallados y ejemplos de Custom Resources (CR) para un clúster KRaft moderno.
 
-  - Se confirma instalacion: 
-    - en menu de la izquierda "Workloads" 
-    - Pods: que se esta ejecutando. 
+Pasos rápidos (resumen):
+- Instalar Strimzi (Helm o YAML) en el namespace `default`.
+- Aplicar el CR `Kafka` (config global) y uno o más `KafkaNodePool` (replicas, storage, roles).
+- Comprobar CRs y pods, luego crear topics y probar producer/consumer desde el pod `my-cluster-mixed-0`.
 
+Instalar Strimzi (ejemplo con Helm en Lens o CLI):
+```bash
+# Con Helm (si usas CLI):
+helm repo add strimzi https://strimzi.io/charts/
+helm repo update
+helm install strimzi-kafka-operator strimzi/strimzi-kafka-operator --namespace default --create-namespace
+```
 
-PRUEBAS
-nslookup google.com
-nslookup registry.bitnami.com
+Comprobar que el operador está running:
+```bash
+kubectl -n default get pods -l name=strimzi
+kubectl -n default get crd | grep kafka
+```
 
-### otro 
-Agrega el repositorio de Strimzi manualmente:
-1. En Lens, ve a la sección de “Helm” → “Repositories” (o “Repos”).
-2. Haz clic en “Add Custom Repository” o “+ Add”.
-3. Ponle de nombre: strimzi
-4. En la URL, escribe:
+Ejemplo mínimo de Custom Resources para un cluster KRaft (guarda como `06-KAFKA/strimzi-kafka-kraft.yaml` y apúralo con Lens o `kubectl apply -f`):
 
-5. Haz clic en “Add”.
+```yaml
+apiVersion: kafka.strimzi.io/v1
+kind: Kafka
+metadata:
+  name: my-cluster
+  namespace: default
+spec:
+  # version: indica la versión de Kafka que deployará Strimzi
+  version: "3.6.0"
+  kafka:
+    # config global del cluster
+    config:
+      offsets.topic.replication.factor: 1
+      transaction.state.log.replication.factor: 1
+      transaction.state.log.min.isr: 1
+  # entity operator (topic/user management)
+  entityOperator:
+    topicOperator: {}
+    userOperator: {}
 
-Ahora vuelve a “Helm” → “Charts”, busca “strimzi” y ya debería aparecer el chart strimzi-kafka-operator.
+---
+# KafkaNodePool define nodos (replicas, storage y roles). Puedes crear varias pools.
+apiVersion: kafka.strimzi.io/v1
+kind: KafkaNodePool
+metadata:
+  name: mixed
+  namespace: default
+  labels:
+    strimzi.io/cluster: my-cluster
+spec:
+  replicas: 1
+  roles:
+    - broker
+    - controller
+  storage:
+    type: ephemeral
+    # Para storage persistente usa:
+    #   type: persistent-claim
+    #   size: 20Gi
+    #   storageClass: gp2
 
-## Enlaces útiles para Kafka con Strimzi
+```
 
-Si eliges la ruta de Strimzi, usa esta documentación oficial:
+Notas sobre storage:
+- `ephemeral` es más sencillo para pruebas (no crea PVCs). Para producción usa `persistent-claim` y define `size` y `storageClass`.
 
-- Guía principal de despliegue: https://strimzi.io/docs/operators/latest/full/deploying.html
-- Quick starts: https://strimzi.io/quickstarts/
+Comandos útiles para comprobar despliegue (desde master o con `kubectl` en tu máquina):
+```bash
+# Ver CRs de Strimzi
+kubectl -n default get kafka
+kubectl -n default get kafkanodepools
 
-## Ruta recomendada para principiantes
+# Ver pods del cluster y del operador
+kubectl -n default get pods
 
-1. Verifica que K3s esté funcionando.
-2. Instala el operador de Strimzi.
-3. Aplica el manifiesto de Kafka.
-4. Espera a que los pods queden en estado Running.
-5. Crea topics y usuarios si los necesitas.
-6. Desde ahí conecta tus aplicaciones como n8n.
+# Ver servicios (bootstrap service para clientes internos)
+kubectl -n default get svc | grep my-cluster
+```
 
-### mis pasos para instalar Strimzi con Lens
-1. Ve a “Helm” → “Charts” y busca “strimzi”.
-2. Selecciona el chart strimzi-kafka-operator y haz clic en “Install”.
-3. Elige el namespace (puedes dejar “default”) y haz clic en “Install”.
+Nombre del service bootstrap (ejemplo interno): `my-cluster-kafka-bootstrap:9092` — es el endpoint que usan clientes dentro del cluster.
 
-Cuando termine la instalación:
-4. Ve a “Workloads” → “Pods” y espera a que el pod del operador esté en estado Running.
+Crear topics (desde dentro de un pod broker, ejemplo con `my-cluster-mixed-0`):
+```bash
+# Abrir shell en el pod (Lens Terminal o SSH -> kubectl exec):
+# kubectl exec -it my-cluster-mixed-0 -n default -- bash
 
-Luego:
-5. En Lens, ve a “+” → “Create Resource”.
-6. Pega este manifiesto YAML para crear un clúster Kafka sencillo:
-  - strimzi_values.yaml
+# Crear topic
+/opt/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --topic prueba-kafka --partitions 1 --replication-factor 1
+
+# Listar topics
+/opt/kafka/bin/kafka-topics.sh --list --bootstrap-server localhost:9092
+
+# Describir topic
+/opt/kafka/bin/kafka-topics.sh --describe --bootstrap-server localhost:9092 --topic prueba-kafka
+
+# Enviar mensaje (producer)
+echo "hola desde prueba" | /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic prueba-kafka
+
+# Consumir mensajes (consumer)
+/opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic prueba-kafka --from-beginning --max-messages 1
+
+# Comandos sin shell interactivo (desde master):
+kubectl -n default exec my-cluster-mixed-0 -- /opt/kafka/bin/kafka-topics.sh --create --bootstrap-server localhost:9092 --topic prueba-kafka --partitions 1 --replication-factor 1
+echo "hola" | kubectl -n default exec -i my-cluster-mixed-0 -- /opt/kafka/bin/kafka-console-producer.sh --bootstrap-server localhost:9092 --topic prueba-kafka
+kubectl -n default exec my-cluster-mixed-0 -- /opt/kafka/bin/kafka-console-consumer.sh --bootstrap-server localhost:9092 --topic prueba-kafka --from-beginning --max-messages 1
+```
+
+Exponer Kafka externamente (opciones):
+- Para pruebas rápidas puedes cambiar listeners en el `Kafka` CR para crear un external listener con `type: nodeport` o `loadbalancer`. Consulta la documentación de Strimzi para `listeners.external`. Ejemplo básico:
+
+```yaml
+# Dentro del spec.kafka del Kafka CR:
+listeners:
+  - name: plain
+    port: 9092
+    type: internal
+  - name: external
+    port: 30992
+    type: nodeport
+    tls: false
+```
+
+Recomendaciones finales:
+- Para pruebas usa `ephemeral` storage y `replicas: 1`.
+- Para producción: múltiples replicas, `persistent-claim` storage y al menos 3 brokers (o según HA que necesites).
+- Si usas Lens: pega el YAML en `Create Resource` y aplica; usa la Terminal del pod para ejecutar los binarios `kafka-*`.
+
+Referencias:
+- Documentación Strimzi: https://strimzi.io/docs/operators/latest/
   
 
 

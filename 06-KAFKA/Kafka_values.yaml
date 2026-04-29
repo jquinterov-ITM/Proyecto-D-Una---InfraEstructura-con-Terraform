@@ -1,10 +1,15 @@
 # Archivo de ejemplo para personalizar la instalación de Kafka con Helm
+# Permitir temporalmente imágenes no verificadas (requerido por algunos charts Bitnami)
+global:
+  security:
+    allowInsecureImages: true
 # Puedes modificar estos valores según tus necesidades
 
 replicaCount: 1
 image:
-  registry: registry.bitnami.com
+  registry: docker.io
   repository: bitnami/kafka
+  tag: latest
 zookeeper:
   replicaCount: 1
 resources:
@@ -15,4 +20,12 @@ resources:
     memory: 1Gi
     cpu: 500m
 service:
-  type: ClusterIP # Cambia a NodePort o LoadBalancer si lo necesitas
+  type: NodePort # Cambiado a NodePort para pruebas desde fuera del cluster
+
+# Persistencia (usa EFS mediante la StorageClass `efs-sc` creada en Proyecto 3)
+persistence:
+  enabled: true
+  size: 20Gi
+  storageClass: efs-sc
+  # Si tu cluster no tiene storageClass llamada `efs-sc`, elimina la línea
+  # `storageClass` y Kubernetes usará la StorageClass por defecto.

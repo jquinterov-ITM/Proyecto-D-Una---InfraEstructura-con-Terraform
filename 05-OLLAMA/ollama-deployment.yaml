@@ -12,20 +12,28 @@ spec:
       labels:
         app: ollama
     spec:
+      automountServiceAccountToken: false
       containers:
       - name: ollama
-        image: ollama/ollama:latest
+        image: ollama/ollama:0.1.48
         ports:
         - containerPort: 11434
         resources:
           requests:
             cpu: "1"
             memory: "2Gi"
-            #memory: "1Gi"
+            ephemeral-storage: "1Gi"
           limits:
             cpu: "2"
             memory: "4Gi"
-            #memory: "2Gi"
+            ephemeral-storage: "2Gi"
+        volumeMounts:
+        - name: ollama-data
+          mountPath: /root/.ollama  # Donde Ollama guarda los modelos
+      volumes:
+      - name: ollama-data
+        persistentVolumeClaim:
+          claimName: efs-pvc-ia  # ← Reutiliza la PVC de Proyecto 3
 ---
 apiVersion: v1
 kind: Service

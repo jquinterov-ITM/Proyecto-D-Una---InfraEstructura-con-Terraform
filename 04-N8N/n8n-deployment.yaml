@@ -25,6 +25,7 @@ spec:
       labels:
         app: n8n
     spec:
+      automountServiceAccountToken: false
       # InitContainer para corregir permisos de escritura en EFS
       initContainers:
       - name: volume-permissions
@@ -36,6 +37,15 @@ spec:
       containers:
       - name: n8n
         image: n8nio/n8n:0.226.0
+        resources:
+          requests:
+            cpu: "250m"
+            memory: "512Mi"
+            ephemeral-storage: "1Gi"
+          limits:
+            cpu: "1"
+            memory: "1Gi"
+            ephemeral-storage: "2Gi"
         ports:
           - containerPort: 5678
         env:
@@ -43,20 +53,11 @@ spec:
           - name: DB_TYPE
             value: postgresdb
           - name: DB_POSTGRESDB_HOST
-            valueFrom:
-              configMapKeyRef:
-                name: n8n-config
-                key: DB_POSTGRESDB_HOST
+            value: "db-n8n-dev.cjg1jd3af1v1.us-east-1.rds.amazonaws.com"  # ← CAMBIAR: Tu endpoint RDS
           - name: DB_POSTGRESDB_PORT
-            valueFrom:
-              configMapKeyRef:
-                name: n8n-config
-                key: DB_POSTGRESDB_PORT
+            value: "5432"
           - name: DB_POSTGRESDB_DATABASE
-            valueFrom:
-              configMapKeyRef:
-                name: n8n-config
-                key: DB_POSTGRESDB_DATABASE
+            value: "postgres"
           - name: DB_POSTGRESDB_USER
             valueFrom:
               secretKeyRef:
@@ -79,19 +80,13 @@ spec:
                 name: n8n-secrets
                 key: encryption-key
           - name: N8N_HOST
-            valueFrom:
-              configMapKeyRef:
-                name: n8n-config
-                key: N8N_HOST
+            value: "0.0.0.0"
           - name: N8N_SECURE_COOKIE
-            valueFrom:
-              configMapKeyRef:
-                name: n8n-config
-                key: N8N_SECURE_COOKIE
+            value: "false"
         volumeMounts:
           - name: n8n-data
             mountPath: /home/node/.n8n
       volumes:
         - name: n8n-data
           persistentVolumeClaim:
-            claimName: n8n-pvc
+            claimName: efs-pvc-ia
