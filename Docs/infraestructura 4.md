@@ -8,12 +8,12 @@ Este documento detalla la arquitectura de infraestructura, los recursos de nube 
 La infraestructura desplegada hoy en AWS con Terraform incluye:
 - VPC `172.16.20.0/22`.
 - Subred pública (Master, NAT, ALB).
-- Subred privada App/K3s (2 workers: Front y BFF).
+ - Subred privada App/K3s (4 workers: worker_1, worker_2, worker_3, worker_4).
 - Subred privada Data/DB (RDS y EFS).
 - Internet Gateway y NAT Gateway.
 - Security Groups para ALB, master y workers.
 - 1 nodo master K3s en subred pública (admin).
-- 2 nodos worker K3s en subred privada (Front y BFF).
+- 4 nodos worker K3s en subred privada (worker_1, worker_2, worker_3, worker_4).
 - ALB (HTTP:80) con target group a workers.
 - RDS PostgreSQL (Multi-AZ) y EFS en subred de datos.
 
@@ -45,8 +45,8 @@ La infraestructura desplegada hoy en AWS con Terraform incluye:
 - Security Group Worker K3s.
 
 ### 3.3 `modules/compute`
-- 2 masters K3s (privados).
-- 2 workers K3s (privados).
+- 1 master K3s (público).
+- 4 workers K3s (privados).
 
 Se utiliza un clúster ligero para optimizar costos mientras se mantiene la compatibilidad con K8s:
 - **Ingress Controller:** NGINX Ingress para ruteo basado en host (`cliente.duna.com`, `api.duna.com`).
@@ -143,10 +143,12 @@ Resultado: configuracion valida.
 
 ## 8. Mapeo de roles y verificación rápida
 
-El despliegue actual define 2 workers en el clúster K3s, ambos en subred privada:
+El despliegue actual define 4 workers en el clúster K3s, todos en subred privada:
 
-- Worker 1 — Front-end
-- Worker 2 — Backend-for-Frontend (BFF)
+ - Worker 1 — worker_1
+ - Worker 2 — worker_2
+ - Worker 3 — worker_3
+ - Worker 4 — worker_4
 
 Los nombres visibles en la consola EC2 (`tag:Name`) siguen el patrón `worker-<env>-<n>-<rol>` (ejemplo: `worker-dev-1-front`).
 
@@ -216,8 +218,10 @@ flowchart TB
                 M1{{Master K3s}}
             end
             subgraph PRIV1 [Red Privada K3s]
-                W1[[Worker Front]]
-                W2[[Worker BFF]]
+                W1[[worker_1]]
+                W2[[worker_2]]
+                W3[[worker_3]]
+                W4[[worker_4]]
             end
             subgraph DB_SUB1 [Red de Datos]
                 RDS[(RDS Postgres)]
@@ -229,15 +233,19 @@ flowchart TB
 
     ALB ====> PUB1
     NAT1 ------> IGW
-    M1 -- "Tráfico Interno" --> W1 & W2
+    M1 -- "Tráfico Interno" --> W1 & W2 & W3 & W4
     W1 -- "DB: 5432" --> RDS
     W2 -- "DB: 5432" --> RDS
+    W3 -- "DB: 5432" --> RDS
+    W4 -- "DB: 5432" --> RDS
     W1 -- "EFS" --> EFS
     W2 -- "EFS" --> EFS
+    W3 -- "EFS" --> EFS
+    W4 -- "EFS" --> EFS
 
     class AWS cloud; class VPC vpc;
     class PUB1 pub; class PRIV1 priv; class DB_SUB1 db;
-    class M1,W1,W2 k3s;
+    class M1,W1,W2,W3,W4 k3s;
 ```
 
 
