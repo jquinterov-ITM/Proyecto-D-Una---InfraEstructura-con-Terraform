@@ -176,18 +176,17 @@ flowchart TB
         Lens[fa:fa-desktop Lens]
     end
     
-    Cliente & Proveedor & Administrador -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
-    
-    HTTPS --> ALB
+    Administrador & Cliente & Proveedor -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
     
     subgraph AWS ["fa:fa-cloud AWS Cloud"]
-        ALB[ALB]
+        
         S3[(Amazon S3<br/>Assets)]
         
         subgraph VPC [" "]
             L2[fa:fa-network-wired VPC <br/> 172.16.20.0/22]:::invisibleVPC
             
             subgraph PUB1 [Red Pública]
+                ALB[ALB]
                 NAT1[NAT Gateway]
                 M1{{Master K3s}}
             end
@@ -209,21 +208,25 @@ flowchart TB
 
     %% Administracion segura
     Administrador --> Lens -- "SSM Tunnel localhost:6443" --> M1
+    M1 -- "Tráfico Interno" --> PRIV1
 
     %% Conexiones de aplicacion
-    ALB --> PUB1
-    M1 -- "Tráfico Interno" --> PRIV1
+    HTTPS --> IGW
+    IGW --> ALB
+    ALB --> PRIV1
     PRIV1 -- "DB: 5432" --> RDS
     RDS -. "Sync" .-> RDS_S
     PRIV1 -- "EFS" --> EFS
    
-
     %% S3 Assets (GAP-INFRA-002)
     PRIV1 -. "S3 API" .-> S3
     HTTPS -. "GET" .-> S3
 
     %% Salida a Internet restringida por NAT
     PRIV1 ==Salida a internet==> NAT1 ==Salida a internet==> IGW ==> Internet
+
+    %% Salida de la red publica
+    PUB1 <==> IGW
 
     class AWS cloud; class VPC vpc; class PUB1 pub;
     class PRIV1 priv; class DB_SUB1,S3 db; class M1,W1,W2,W3,W4 k3s;

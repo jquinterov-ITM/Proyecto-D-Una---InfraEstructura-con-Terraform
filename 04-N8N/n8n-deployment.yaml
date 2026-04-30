@@ -57,7 +57,7 @@ spec:
           - name: DB_POSTGRESDB_PORT
             value: "5432"
           - name: DB_POSTGRESDB_DATABASE
-            value: "postgres"
+            value: "n8ndb"  # ← CAMBIAR: Tu nombre de base de datos
           - name: DB_POSTGRESDB_USER
             valueFrom:
               secretKeyRef:
