@@ -17,7 +17,7 @@
 *.tfvars
 override.tf
 override.tf.json
-*.pem
+#*.pem
 *.key
 secrets.yaml
 

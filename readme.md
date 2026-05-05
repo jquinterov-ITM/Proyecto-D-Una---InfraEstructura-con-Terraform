@@ -47,6 +47,24 @@ Este proyecto está pensado como laboratorio, pero si lo vas a seguir usando con
 
 Los comandos de despliegue y el orden completo de ejecución están documentados en [Implementacion.md](c:/ITM/AWS%20Proyecto%20D-Una/Implementacion.md). Usa ese archivo como guía operativa paso a paso.
 
+## Alertas Operativas de n8n (K8s API + correo)
+
+Se implementó una ruta para monitorear pods clave y enviar alertas por correo desde n8n.
+
+- Objetivo: detectar estados `CrashLoopBackOff`, `ImagePullBackOff`, `ErrImagePull`, `CreateContainerConfigError`, `Pending` prolongado y reinicios altos.
+- Alcance inicial: `n8n`, `ollama`, `my-cluster` (Kafka Strimzi) y `strimzi`.
+- Canal: correo electrónico (sin WhatsApp).
+
+Archivos relacionados:
+
+- `04-N8N/n8n-deployment.yaml` (usa ServiceAccount de monitoreo).
+- `04-N8N/n8n-monitor-rbac.yaml` (RBAC de solo lectura para pods/eventos/namespaces).
+- `04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md` (guía completa paso a paso y nodos n8n).
+
+Si retomas el proyecto más adelante o lo entregas a otra persona, empieza por el instructivo:
+
+- [04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md](04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md)
+
 ## Kafka: dos rutas posibles
 
 Si vas a seguir este proyecto como ejemplo, Kafka puede instalarse de dos formas. Para alguien que empieza, la idea más simple es probar una sola ruta primero y no mezclar ambas al mismo tiempo.

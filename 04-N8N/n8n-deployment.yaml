@@ -25,7 +25,8 @@ spec:
       labels:
         app: n8n
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: n8n-monitor
+      automountServiceAccountToken: true
       # InitContainer para corregir permisos de escritura en EFS
       initContainers:
       - name: volume-permissions
