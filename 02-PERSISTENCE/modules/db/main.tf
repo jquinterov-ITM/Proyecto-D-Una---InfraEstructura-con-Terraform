@@ -22,7 +22,7 @@ resource "aws_db_instance" "this" {
   instance_class         = var.db_instance_class
   allocated_storage      = var.db_allocated_storage
   db_name                = "n8ndb"
-  username               = "admin_user"
+  username               = "dunAdmin"
   password               = var.db_password
   db_subnet_group_name   = aws_db_subnet_group.this.name
   vpc_security_group_ids = [aws_security_group.rds_sg.id]

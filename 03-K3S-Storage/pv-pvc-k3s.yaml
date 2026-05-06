@@ -12,7 +12,7 @@ spec:
   storageClassName: efs-sc-ia # Clase manual para evitar el provisioner dinamico
   csi:
     driver: efs.csi.aws.com
-    volumeHandle: fs-0b3a2062e1240a4b5 # <--- COLOCA TU FS-ID DE EFS AQUÍ
+    volumeHandle: fs-080fcb2d3cc4bdb37 # <--- COLOCA TU FS-ID DE EFS AQUÍ
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim

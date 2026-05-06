@@ -25,7 +25,8 @@ spec:
       labels:
         app: n8n
     spec:
-      automountServiceAccountToken: false
+      serviceAccountName: n8n-monitor
+      automountServiceAccountToken: true
       # InitContainer para corregir permisos de escritura en EFS
       initContainers:
       - name: volume-permissions
@@ -57,7 +58,7 @@ spec:
           - name: DB_POSTGRESDB_PORT
             value: "5432"
           - name: DB_POSTGRESDB_DATABASE
-            value: "postgres"
+            value: "n8ndb"  # ← CAMBIAR: Tu nombre de base de datos
           - name: DB_POSTGRESDB_USER
             valueFrom:
               secretKeyRef:

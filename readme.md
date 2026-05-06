@@ -47,6 +47,24 @@ Este proyecto está pensado como laboratorio, pero si lo vas a seguir usando con
 
 Los comandos de despliegue y el orden completo de ejecución están documentados en [Implementacion.md](c:/ITM/AWS%20Proyecto%20D-Una/Implementacion.md). Usa ese archivo como guía operativa paso a paso.
 
+## Alertas Operativas de n8n (K8s API + correo)
+
+Se implementó una ruta para monitorear pods clave y enviar alertas por correo desde n8n.
+
+- Objetivo: detectar estados `CrashLoopBackOff`, `ImagePullBackOff`, `ErrImagePull`, `CreateContainerConfigError`, `Pending` prolongado y reinicios altos.
+- Alcance inicial: `n8n`, `ollama`, `my-cluster` (Kafka Strimzi) y `strimzi`.
+- Canal: correo electrónico (sin WhatsApp).
+
+Archivos relacionados:
+
+- `04-N8N/n8n-deployment.yaml` (usa ServiceAccount de monitoreo).
+- `04-N8N/n8n-monitor-rbac.yaml` (RBAC de solo lectura para pods/eventos/namespaces).
+- `04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md` (guía completa paso a paso y nodos n8n).
+
+Si retomas el proyecto más adelante o lo entregas a otra persona, empieza por el instructivo:
+
+- [04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md](04-N8N/N8N-ALERTAS-OPERATIVAS-PASOS.md)
+
 ## Kafka: dos rutas posibles
 
 Si vas a seguir este proyecto como ejemplo, Kafka puede instalarse de dos formas. Para alguien que empieza, la idea más simple es probar una sola ruta primero y no mezclar ambas al mismo tiempo.
@@ -176,18 +194,17 @@ flowchart TB
         Lens[fa:fa-desktop Lens]
     end
     
-    Cliente & Proveedor & Administrador -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
-    
-    HTTPS --> ALB
+    Administrador & Cliente & Proveedor -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
     
     subgraph AWS ["fa:fa-cloud AWS Cloud"]
-        ALB[ALB]
+        
         S3[(Amazon S3<br/>Assets)]
         
         subgraph VPC [" "]
             L2[fa:fa-network-wired VPC <br/> 172.16.20.0/22]:::invisibleVPC
             
             subgraph PUB1 [Red Pública]
+                ALB[ALB]
                 NAT1[NAT Gateway]
                 M1{{Master K3s}}
             end
@@ -209,21 +226,25 @@ flowchart TB
 
     %% Administracion segura
     Administrador --> Lens -- "SSM Tunnel localhost:6443" --> M1
+    M1 -- "Tráfico Interno" --> PRIV1
 
     %% Conexiones de aplicacion
-    ALB --> PUB1
-    M1 -- "Tráfico Interno" --> PRIV1
+    HTTPS --> IGW
+    IGW --> ALB
+    ALB --> PRIV1
     PRIV1 -- "DB: 5432" --> RDS
     RDS -. "Sync" .-> RDS_S
     PRIV1 -- "EFS" --> EFS
    
-
     %% S3 Assets (GAP-INFRA-002)
     PRIV1 -. "S3 API" .-> S3
     HTTPS -. "GET" .-> S3
 
     %% Salida a Internet restringida por NAT
     PRIV1 ==Salida a internet==> NAT1 ==Salida a internet==> IGW ==> Internet
+
+    %% Salida de la red publica
+    PUB1 <==> IGW
 
     class AWS cloud; class VPC vpc; class PUB1 pub;
     class PRIV1 priv; class DB_SUB1,S3 db; class M1,W1,W2,W3,W4 k3s;

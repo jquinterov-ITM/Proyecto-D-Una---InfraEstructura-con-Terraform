@@ -5,7 +5,7 @@ Este documento resume la arquitectura objetivo y su estado de implementacion en 
 
 ## 1) Arquitectura actual
  - Pública: NAT Gateway y Master
-- Privada: App/K3s (2 workers: Front y BFF)
+ - Privada: App/K3s (4 workers: worker_1, worker_2, worker_3, worker_4)
 - Privada: Data/DB (RDS y EFS)
  
 
@@ -44,28 +44,32 @@ end
 
 ALB ====> PUB1
 NAT1 ------> IGW
-M1 -- "Tráfico Interno" --> W1 & W2
+M1 -- "Tráfico Interno" --> W1 & W2 & W3 & W4
 W1 -- "DB: 5432" --> RDS
 W2 -- "DB: 5432" --> RDS
+W3 -- "DB: 5432" --> RDS
+W4 -- "DB: 5432" --> RDS
 W1 -- "EFS" --> EFS
 W2 -- "EFS" --> EFS
+W3 -- "EFS" --> EFS
+W4 -- "EFS" --> EFS
 
 class AWS cloud; class VPC vpc;
 class PUB1 pub; class PRIV1 priv; class DB_SUB1 db;
-class M1,W1,W2 k3s;
+class M1,W1,W2,W3,W4 k3s;
 ```                   
 
 
 ## 2) Estado actual implementado en Terraform
 
-- Implementado: VPC, subredes públicas/app/data, IGW, NAT, SGs, 1 master K3s, 2 workers K3s, ALB HTTP, RDS, EFS.
+- Implementado: VPC, subredes públicas/app/data, IGW, NAT, SGs, 1 master K3s, 4 workers K3s, ALB HTTP, RDS, EFS.
 - Seguridad: Solo los workers acceden a RDS/EFS. NAT restringe salida a internet.
 - Pendiente: listener HTTPS con ACM y Route 53 (depende de variables de DNS).
 
 Este diagrama representa la arquitectura real y simplificada de alta disponibilidad en AWS para una aplicación web orquestada con K3s.
 
 **Notas:**
-- El clúster se ha optimizado a 2 workers (Front y BFF) en subred privada.
+- El clúster se ha optimizado a 4 workers (worker_1, worker_2, worker_3, worker_4) en subred privada.
 - La capa de persistencia (RDS/EFS) está protegida y solo accesible desde los workers.
 - El master está en subred pública solo para administración.
 - Red Pública (Verde): Aloja los NAT Gateways. Es la única con salida directa a Internet. El tráfico del balanceador (ALB) pasa por aquí para llegar a la aplicación.

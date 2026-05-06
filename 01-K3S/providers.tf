@@ -2,7 +2,8 @@ terraform {
   required_version = ">= 1.5.0"
 
   backend "s3" {
-    bucket  = "jquinterov.seminario2"
+    #bucket  = "jquinterov.seminario2"
+    bucket  = "s3-duna-servicios"
     key     = "Duna/k3s/terraform.tfstate"
     region  = "us-east-1"
     encrypt = true

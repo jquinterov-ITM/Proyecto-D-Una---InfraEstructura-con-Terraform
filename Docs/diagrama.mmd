@@ -1,17 +1,33 @@
 flowchart TB
-    classDef cloud fill:#fff,stroke:#232F3E,stroke-width:2px;
-    classDef vpc fill:#fff,stroke:#3B48CC,stroke-width:2px,stroke-dasharray: 5 5;
+    classDef cloud fill:#fff,stroke:#232F3E,stroke-width:4px;
+    classDef vpc stroke:#3B48CC,stroke-width:2px,stroke-dasharray: 5 5;
     classDef pub fill:#e1f8e9,stroke:#2e7d32,stroke-width:1px;
     classDef priv fill:#e3f2fd,stroke:#1565c0,stroke-width:1px;
-    classDef db fill:#fff3e0,stroke:#ef6c00,stroke-width:1px;
+    classDef db fill:#fff,stroke:#ef6c00,stroke-width:1px;
     classDef k3s fill:#326ce5,color:#fff,stroke-width:2px;
+    classDef invisibleVPC fill:none,stroke:none,color:#3B48CC,font-weight:bold,font-size:25px;
 
-    Cliente([Cliente Web]) -- "HTTPS:443" --> ALB
 
-    subgraph AWS ["AWS Cloud"]
-        subgraph VPC ["VPC 172.16.20.0/22"]
-            ALB[ALB]
+    %% Usuarios 
+    subgraph Usuarios [ ]
+        direction LR
+        Cliente([fa:fa-laptop Cliente])
+        Proveedor([fa:fa-building Proveedor])
+        Administrador([fa:fa-user-shield Administrador])
+        Lens[fa:fa-desktop Lens]
+    end
+    
+    Administrador & Cliente & Proveedor -- "HTTPS:443" ---> HTTPS([fa:fa-globe Https])
+    
+    subgraph AWS ["fa:fa-cloud AWS Cloud"]
+        
+        S3[(Amazon S3<br/>Assets)]
+        
+        subgraph VPC [" "]
+            L2[fa:fa-network-wired VPC <br/> 172.16.20.0/22]:::invisibleVPC
+            
             subgraph PUB1 [Red Pública]
+                ALB[ALB]
                 NAT1[NAT Gateway]
                 M1{{Master K3s}}
             end
@@ -23,21 +39,35 @@ flowchart TB
             end
             subgraph DB_SUB1 [Red de Datos]
                 RDS[(RDS Postgres)]
+                RDS_S[(RDS Standby)]
                 EFS[(EFS Storage)]
             end
             IGW[Internet Gateway]
         end
     end
+    Internet([fa:fa-globe Internet])
 
-    ALB ====> PUB1
-    NAT1 ------> IGW
-    M1 -- "Tráfico Interno" --> W1 & W2
-    W1 -- "DB: 5432" --> RDS
-    W2 -- "DB: 5432" --> RDS
-    W1 -- "EFS" --> EFS
-    W2 -- "EFS" --> EFS
+    %% Administracion segura
+    Administrador --> Lens -- "SSM Tunnel localhost:6443" --> M1
+    M1 -- "Tráfico Interno" --> PRIV1
 
-    class AWS cloud; class VPC vpc;
-    class PUB1 pub; class PRIV1 priv; class DB_SUB1 db;
-    class M1,W1,W2 k3s;
+    %% Conexiones de aplicacion
+    HTTPS --> IGW
+    IGW --> ALB
+    ALB --> PRIV1
+    PRIV1 -- "DB: 5432" --> RDS
+    RDS -. "Sync" .-> RDS_S
+    PRIV1 -- "EFS" --> EFS
+   
+    %% S3 Assets (GAP-INFRA-002)
+    PRIV1 -. "S3 API" .-> S3
+    HTTPS -. "GET" .-> S3
 
+    %% Salida a Internet restringida por NAT
+    PRIV1 ==Salida a internet==> NAT1 ==Salida a internet==> IGW ==> Internet
+
+    %% Salida de la red publica
+    PUB1 <==> IGW
+
+    class AWS cloud; class VPC vpc; class PUB1 pub;
+    class PRIV1 priv; class DB_SUB1,S3 db; class M1,W1,W2,W3,W4 k3s;
