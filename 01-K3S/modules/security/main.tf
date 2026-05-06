@@ -33,6 +33,13 @@ resource "aws_security_group" "master" {
     #cidr_blocks = [var.my_ip]
     cidr_blocks = ["0.0.0.0/0"]                               
   }
+  # Permitir ping (ICMP)
+  ingress {
+    from_port   = -1
+    to_port     = -1
+    protocol    = "icmp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
   ingress {
     from_port   = 0
     to_port     = 0

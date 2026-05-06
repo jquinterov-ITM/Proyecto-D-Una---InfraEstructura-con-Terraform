@@ -14,7 +14,7 @@ locals {
     "dev" = {
       worker_count    = 4
       worker_max_pods = 7
-      master_type     = "t3.micro"
+      master_type     = "t3.small"
       worker_type = "c7i-flex.large"
       vpc_cidr        = "172.16.20.0/22"
       pub_subnets     = ["172.16.20.0/25", "172.16.20.128/25"]

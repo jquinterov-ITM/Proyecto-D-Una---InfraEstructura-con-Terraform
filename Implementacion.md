@@ -52,10 +52,10 @@ Tener a la mano el archivo **testKey.pem** (o el keypair tuyo y poner el nombre)
 # USUARIO: Ubuntu@**ipPublicaDelMaster** o como sea la maquina
 
 # Descargar el archivo de configuracion
-ssh -i "testKey.pem" ubuntu@100.31.60.195 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
+ssh -i "Key Pair Duna.pem" ubuntu@3.239.121.126 " sudo cat /etc/rancher/k3s/k3s.yaml" > k3s-config.yaml
 
 # Abrir tunel SSH desde consola distinta u otra terminal
-ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@100.31.60.195 -N
+ssh -i "Key Pair Duna.pem" -L 6443:127.0.0.1:6443 ubuntu@3.239.121.126 -N
 ```
 - Con el archivo de configuracion [k3s-config.yaml], copiamos lo que trajo y se pasa a lens
 - en **lens** (Se elimina default si existe)
@@ -66,7 +66,7 @@ ssh -i "testKey.pem" -L 6443:127.0.0.1:6443 ubuntu@100.31.60.195 -N
 ## Iniciar Proyecto 2 [02-PERSISTENCE]
 ```bash
 # ir al proyecto 2
-cd ..\02-PERSISTENCE\
+cd ../02-PERSISTENCE/
 ```
 ### Comandos Terraform
 ```bash
@@ -82,7 +82,8 @@ terraform validate
 # Ver plan de ejecución
 terraform plan
 
-# Pide clave para la BD [1-8]
+# Pide clave para la BD [escribes la que quieres poner]
+# o tenerla en el archivo '02-PERSISTENCE\secrets.auto.tfvars'
 
 # Aplicar cambios
 terraform apply
@@ -159,7 +160,7 @@ Validar en Lens:
 
 Prueba de acceso:
 - Abrir en el navegador la IP publica del master con el puerto de n8n.
-- Ejemplo: `100.31.60.195:30567`
+- Ejemplo: `3.239.121.126:30567`
 
 Si n8n no levanta y usa `efs-pvc-ia`, primero confirmar que el driver `aws-efs-csi-driver` siga instalado y en estado `Running` en `kube-system`.
 
@@ -274,12 +275,12 @@ Abrir 3 terminales en tu PC:
 
 - **Terminal A (PC):** tunel SSH para exponer el puerto local `11434`
 ```bash
-ssh -i "testKey.pem" -L 11434:127.0.0.1:11434 ubuntu@100.31.60.195 -N
+ssh -i "Key Pair Duna.pem" -L 11434:127.0.0.1:11434 ubuntu@3.239.121.126 -N
 ```
 
 - **Terminal B (PC -> Master):** entrar al master y abrir `port-forward`
 ```bash
-ssh -i "testKey.pem" ubuntu@100.31.60.195
+ssh -i "Key Pair Duna.pem" ubuntu@3.239.121.126
 kubectl get pods -l app=ollama -n default
 kubectl get svc ollama -n default
 kubectl port-forward svc/ollama 11434:11434 -n default
